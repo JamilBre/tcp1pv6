@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador TCP - Detalle de Cabecera</title>
+    <title>Simulador TCP - Ciclo de Vida Completo</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,109 +13,113 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        body { background-color: #f0f2f5; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        body { background-color: #f8fafc; }
         .tcp-table { border: 1.5px solid #000; font-family: 'Courier New', Courier, monospace; }
-        .tcp-table td, .tcp-table th { border: 1px solid #000; padding: 2px 4px; text-align: center; font-size: 9px; }
-        .flag-box { border-right: 1px solid #000; height: 100%; display: flex; align-items: center; justify-content: center; min-width: 12px; }
+        .tcp-table td, .tcp-table th { border: 1px solid #000; padding: 1px 3px; text-align: center; font-size: 8px; }
+        .lifeline-label { writing-mode: vertical-rl; text-orientation: mixed; }
+        .vertical-text { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 5px; line-height: 1.1; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         const MonitorIcon = () => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
         );
 
         const ServerIcon = () => (
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#1f2937" strokeWidth="2"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>
         );
 
         const Node = ({ icon, label, ip }) => (
-            <div className="flex flex-col items-center w-52 bg-white/90 backdrop-blur p-3 rounded-xl shadow-md border border-gray-200">
-                <div className="mb-2">{icon}</div>
-                <div className="font-mono font-bold text-gray-800 text-[9px] text-center break-all leading-tight">{ip}</div>
-                <div className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest mt-2">{label}</div>
+            <div className="flex flex-col items-center w-48 bg-white p-2 rounded-lg shadow-sm border border-gray-200">
+                <div className="mb-1">{icon}</div>
+                <div className="font-mono font-bold text-gray-800 text-[8px] text-center break-all leading-tight">{ip}</div>
+                <div className="text-[9px] text-blue-600 font-bold uppercase tracking-widest mt-1">{label}</div>
             </div>
         );
 
         const TCPHeaderTable = ({ packet }) => {
-            const flags = packet.flags || { ns:0, cwr:0, ece:0, urg:0, ack:1, psh:1, rst:0, syn:0, fin:0 };
+            const f = packet.flags || { ns:0, cwr:0, ece:0, urg:0, ack:0, psh:0, rst:0, syn:0, fin:0 };
             
             return (
-                <div className="bg-white tcp-table shadow-xl w-[280px]">
-                    {/* Row 1: Ports */}
-                    <div className="grid grid-cols-2 border-b border-black">
-                        <div className="p-1 border-r border-black">Pto origen: <span className="font-bold">{packet.portOrig}</span></div>
-                        <div className="p-1">Pto destino: <span className="font-bold">{packet.portDest}</span></div>
+                <div className="flex flex-col items-center">
+                    <div className="bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-t-md max-w-[280px] w-[280px] text-center shadow-md z-10 border border-blue-800">
+                        {packet.description}
                     </div>
-                    {/* Row 2: Seq Number */}
-                    <div className="p-1 border-b border-black text-center">
-                        Número de secuencia: <span className="font-bold">{packet.seq}</span> (32)
-                    </div>
-                    {/* Row 3: ACK Number */}
-                    <div className="p-1 border-b border-black text-center">
-                        Número de confirmación - ACK: <span className="font-bold">{packet.ackNum}</span> (32)
-                    </div>
-                    {/* Row 4: Header Len, Res, Flags, Window */}
-                    <div className="flex border-b border-black text-[7px] font-bold">
-                        <div className="w-8 border-r border-black p-0.5 leading-none">H.Len<br/>(4)</div>
-                        <div className="w-10 border-r border-black p-0.5 leading-none">Res.<br/>000</div>
-                        <div className="flex grow">
-                            {['NS','CWR','ECE','URG','ACK','PSH','RST','SYN','FIN'].map(f => (
-                                <div key={f} className={`flex-1 border-r border-black text-center ${flags[f.toLowerCase()] ? 'bg-yellow-100 text-red-600' : 'text-gray-400'}`}>
-                                    {f}
-                                </div>
-                            ))}
+                    <div className="bg-white tcp-table shadow-xl w-[280px] text-black">
+                        <div className="grid grid-cols-2 border-b border-black">
+                            <div className="p-0.5 border-r border-black">Puerto origen (16): <br/><span className="font-bold">{packet.portOrig}</span></div>
+                            <div className="p-0.5">Puerto destino (16): <br/><span className="font-bold">{packet.portDest}</span></div>
                         </div>
-                        <div className="w-20 p-0.5 text-center leading-none">Tam. Ventana<br/>{packet.window}</div>
-                    </div>
-                    {/* Row 5: Checksum & Urgent */}
-                    <div className="grid grid-cols-2 border-b border-black">
-                        <div className="p-1 border-r border-black">Checksum: <span className="font-bold">0x{packet.checksum}</span></div>
-                        <div className="p-1">Urgent pointer: <span className="font-bold">0</span></div>
-                    </div>
-                    {/* Row 6: Options */}
-                    <div className="p-1 border-b border-black text-center italic text-gray-500">
-                        Opciones (MSS: 1460, SACK Permitted)
-                    </div>
-                    {/* Row 7: Data */}
-                    <div className={`p-2 text-center font-bold ${packet.type === 'response' ? 'text-green-700 bg-green-50' : 'text-blue-700 bg-blue-50'}`}>
-                        DATOS: "{packet.message}"
+                        <div className="p-0.5 border-b border-black text-center text-[8px]">
+                            Número de secuencia (32): <span className="font-bold">{packet.seq}</span>
+                        </div>
+                        <div className="p-0.5 border-b border-black text-center text-[8px]">
+                            Número de confirmación - ACK (32): <span className="font-bold">{packet.ackNum}</span>
+                        </div>
+                        <div className="flex border-b border-black text-[6px] font-bold h-12">
+                            <div className="w-8 border-r border-black flex items-center justify-center text-center leading-tight">Header<br/>lenght<br/>(4)</div>
+                            <div className="w-8 border-r border-black flex items-center justify-center text-center leading-tight">Reser-<br/>vado<br/>000</div>
+                            <div className="flex grow">
+                                {['NS','CWR','ECE','URG','ACK','PSH','RST','SYN','FIN'].map(flag => (
+                                    <div key={flag} className={`flex-1 border-r border-black vertical-text font-bold ${f[flag.toLowerCase()] ? 'bg-yellow-200 text-red-600' : 'text-gray-500'}`}>
+                                        {flag.split('').map((char, i) => <span key={i}>{char}</span>)}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="w-16 flex flex-col items-center justify-center text-center border-black">
+                                <span>Tamaño de</span>
+                                <span>ventana (16)</span>
+                                <span className="font-bold mt-0.5">{packet.window}</span>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 border-b border-black">
+                            <div className="p-0.5 border-r border-black">Checksum (16): <br/><span className="font-bold">{packet.checksum || '0x0000'}</span></div>
+                            <div className="p-0.5">Urgent pointer (16): <br/><span className="font-bold">0</span></div>
+                        </div>
+                        <div className="p-1 border-b border-black text-center text-[8px]">
+                            Opciones (0 - 40): <span className="font-normal italic">{packet.options}</span>
+                        </div>
+                        <div className={`p-2 text-center text-[9px] font-bold ${packet.stage === 'Data' ? 'bg-green-50' : 'bg-gray-50'}`}>
+                            Datos: <span className={packet.type === 'response' ? 'text-green-600' : 'text-blue-600'}>
+                                {packet.message}
+                            </span>
+                        </div>
                     </div>
                 </div>
             );
         };
 
         const PacketArrow = ({ packet, startX, endX }) => {
-            const startPos = parseFloat(startX);
-            const endPos = parseFloat(endX);
-            const midPos = (startPos + endPos) / 2;
-            
+            const isResponse = packet.type === 'response';
+            const midX = (parseFloat(startX) + parseFloat(endX)) / 2;
+
             return (
-                <div className="w-full relative py-4 animate-fade-in">
+                <div className="w-full relative py-2 animate-fade-in group z-20">
                     <div 
-                        className="absolute -top-28 z-20"
-                        style={{ left: `${midPos}%`, transform: 'translateX(-50%)' }}
+                        className="absolute -top-40 z-30 transition-transform group-hover:scale-105"
+                        style={{ left: `${midX}%`, transform: 'translateX(-50%)' }}
                     >
                         <TCPHeaderTable packet={packet} />
                     </div>
 
-                    <svg className="w-full h-16 overflow-visible">
+                    <svg className="w-full h-12 overflow-visible relative z-10">
                         <defs>
-                            <marker id={`arrowhead-${packet.id}`} markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                                <polygon points="0 0, 10 3.5, 0 7" fill="#475569" />
+                            <marker id={`arrow-${packet.id}`} markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="#475569" />
                             </marker>
                         </defs>
                         <line
-                            x1={`${startX}`} y1="20"
-                            x2={`${endX}`} y2="40"
-                            stroke="#475569" strokeWidth="2.5"
-                            strokeDasharray={packet.type === 'response' ? "6,4" : "0"}
-                            markerEnd={`url(#arrowhead-${packet.id})`}
+                            x1={`${startX}`} y1="10"
+                            x2={`${endX}`} y2="30"
+                            stroke="#475569" strokeWidth="2"
+                            strokeDasharray={isResponse ? "4,2" : "0"}
+                            markerEnd={`url(#arrow-${packet.id})`}
                         />
                     </svg>
                 </div>
@@ -125,124 +129,120 @@
         const App = () => {
             const [visiblePackets, setVisiblePackets] = useState([]);
             const [isPlaying, setIsPlaying] = useState(false);
+            const containerRef = useRef(null);
 
             const serverIP = "fd00::ea9c:25ff:fe80:bd0b";
-            const client1IP = "fd00::ce28:aaff:fe28:aa01";
-            const client2IP = "fd00::39bb:deff:fe3b:9bde";
+            const client1IP = "fd00::ce28:aaff:fe1a:bb22";
 
             const packets = [
-                { 
-                    id: 1, from: 'client1', to: 'server', 
-                    ipOrig: client1IP, ipDest: serverIP, 
-                    portOrig: '49512', portDest: '8080', 
-                    seq: '1000', ackNum: '0', window: '64240', checksum: 'A4F2',
-                    message: 'holacomoestas', type: 'request' 
-                },
-                { 
-                    id: 2, from: 'server', to: 'client1', 
-                    ipOrig: serverIP, ipDest: client1IP, 
-                    portOrig: '8080', portDest: '49512', 
-                    seq: '500', ackNum: '1013', window: '16384', checksum: 'B1D3',
-                    message: 'krodfrprhvwdv', type: 'response' 
-                },
-                { 
-                    id: 3, from: 'client2', to: 'server', 
-                    ipOrig: client2IP, ipDest: serverIP, 
-                    portOrig: '55231', portDest: '8080', 
-                    seq: '2000', ackNum: '0', window: '64240', checksum: 'C8E1',
-                    message: 'bien_gracias', type: 'request' 
-                },
-                { 
-                    id: 4, from: 'server', to: 'client2', 
-                    ipOrig: serverIP, ipDest: client2IP, 
-                    portOrig: '8080', portDest: '55231', 
-                    seq: '800', ackNum: '2012', window: '16384', checksum: 'D9A4',
-                    message: 'elhqbjudfldv', type: 'response' 
-                }
+                // Establecimiento (Handshake)
+                { id: 1, stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '0', ackNum: '0', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', checksum: '0x5813', flags: { syn: 1 }, message: '-', type: 'request', description: 'Fase 1: El cliente envía SYN para iniciar conexión.' },
+                { id: 2, stage: 'Handshake', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '0', ackNum: '1', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', checksum: '0x5997', flags: { syn: 1, ack: 1 }, message: '-', type: 'response', description: 'Fase 2: El servidor responde con SYN-ACK aceptando.' },
+                { id: 3, stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '1', ackNum: '1', window: '65280', options: 'Ninguna', checksum: '0x2ba5', flags: { ack: 1 }, message: '-', type: 'request', description: 'Fase 3: El cliente confirma (ACK). Conexión establecida.' },
+                
+                // Transferencia de Datos
+                { id: 4, stage: 'Data', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '1', ackNum: '1', window: '65280', options: 'Ninguna', checksum: '0x1d77', flags: { psh: 1, ack: 1 }, message: 'hola_mundo', type: 'request', description: 'Datos: Cliente envía texto en claro con bandera PSH.' },
+                { id: 5, stage: 'Data', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '1', ackNum: '14', window: '65280', options: 'Ninguna', checksum: '0x5995', flags: { psh: 1, ack: 1 }, message: 'krodbpxqgrt', type: 'response', description: 'Datos: Servidor responde texto cifrado en César.' },
+                
+                // Cierre (Termination)
+                { id: 6, stage: 'Closure', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '14', ackNum: '14', window: '65280', options: 'Ninguna', checksum: '0x2b90', flags: { fin: 1, ack: 1 }, message: '-', type: 'request', description: 'Cierre 1: El cliente solicita cerrar enviando FIN.' },
+                { id: 7, stage: 'Closure', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '14', ackNum: '15', window: '65280', options: 'Ninguna', checksum: '0x598b', flags: { ack: 1 }, message: '-', type: 'response', description: 'Cierre 2: El servidor confirma el FIN del cliente (ACK).' },
+                { id: 8, stage: 'Closure', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '14', ackNum: '15', window: '65280', options: 'Ninguna', checksum: '0x598b', flags: { fin: 1, ack: 1 }, message: '-', type: 'response', description: 'Cierre 3: El servidor envía su FIN para cerrar su lado.' },
+                { id: 9, stage: 'Closure', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '15', ackNum: '15', window: '65280', options: 'Ninguna', checksum: '0x2b8f', flags: { ack: 1 }, message: '-', type: 'request', description: 'Cierre 4: El cliente confirma (ACK). Conexión terminada.' }
             ];
 
             useEffect(() => {
                 let interval;
                 if (isPlaying && visiblePackets.length < packets.length) {
                     interval = setInterval(() => {
-                        setVisiblePackets((prev) => [...prev, packets[prev.length]]);
-                    }, 2500);
-                } else if (visiblePackets.length === packets.length) {
+                        setVisiblePackets(prev => [...prev, packets[prev.length]]);
+                    }, 2000);
+                } else {
                     setIsPlaying(false);
                 }
                 return () => clearInterval(interval);
             }, [isPlaying, visiblePackets]);
 
-            const getXPosition = (node) => {
-                if (node === 'client1') return '15%';
+            const getX = (node) => {
+                if (node === 'client1') return '20%';
                 if (node === 'server') return '50%';
-                if (node === 'client2') return '85%';
+                if (node === 'client2') return '80%';
                 return '0%';
             };
 
             return (
-                <div className="flex flex-col items-center justify-start min-h-screen p-4">
-                    <div className="max-w-6xl w-full bg-white rounded-2xl shadow-2xl p-6 border border-gray-200 relative">
-                        <div className="flex justify-between items-center mb-10 border-b pb-4">
+                <div className="min-h-screen p-4 flex flex-col items-center">
+                    <div className="max-w-6xl w-full bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+                        
+                        {/* Control Panel */}
+                        <div className="p-6 border-b flex justify-between items-center bg-slate-50">
                             <div>
-                                <h1 className="text-2xl font-black text-gray-900 uppercase">Captura de Tráfico TCP</h1>
-                                <p className="text-xs text-gray-500 font-mono tracking-tighter">PROTOCOLO: TCP | ARCHIVO: TCPencriptacion.pcapng</p>
+                                <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">TCP Full Cycle Analysis</h1>
+                                <p className="text-[10px] text-slate-500 font-mono italic">Capture: cifrado.pcapng | AES-César Shift +3</p>
                             </div>
                             <div className="flex gap-2">
                                 <button 
                                     onClick={() => setIsPlaying(true)}
                                     disabled={isPlaying || visiblePackets.length === packets.length}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-bold text-sm transition-all disabled:opacity-50 active:scale-95"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-30"
                                 >
-                                    CAPTURA
+                                    EJECUTAR SECUENCIA
                                 </button>
                                 <button 
                                     onClick={() => {setVisiblePackets([]); setIsPlaying(false);}}
-                                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg font-bold text-sm border border-gray-300 transition-all active:scale-95"
+                                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-50 transition-all"
                                 >
-                                    LIMPIAR
+                                    REINICIAR
                                 </button>
                             </div>
                         </div>
 
-                        {/* Sequence Diagram */}
-                        <div className="relative min-h-[1100px] w-full pt-40 pb-20">
+                        {/* Sequence Diagram Area */}
+                        <div className="relative min-h-[2800px] w-full pt-44 pb-20 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
                             
-                            {/* Nodos */}
-                            <div className="flex justify-between items-start absolute top-4 left-0 w-full px-2 z-30">
-                                <div style={{left: '15%', transform: 'translateX(-50%)'}} className="absolute">
+                            {/* Static Labels on top */}
+                            <div className="absolute top-8 left-0 w-full flex justify-between px-4 z-30">
+                                <div style={{left: '20%', transform: 'translateX(-50%)'}} className="absolute">
                                     <Node icon={<MonitorIcon />} label="Cliente 1" ip={client1IP} />
                                 </div>
                                 <div style={{left: '50%', transform: 'translateX(-50%)'}} className="absolute">
-                                    <Node icon={<ServerIcon />} label="Servidor TCP" ip={serverIP} />
+                                    <Node icon={<ServerIcon />} label="Servidor Central" ip={serverIP} />
                                 </div>
-                                <div style={{left: '85%', transform: 'translateX(-50%)'}} className="absolute">
-                                    <Node icon={<MonitorIcon />} label="Cliente 2" ip={client2IP} />
+                                <div style={{left: '80%', transform: 'translateX(-50%)'}} className="absolute">
+                                    <Node icon={<MonitorIcon />} label="Cliente 2 (Idle)" ip="fd00::39bb..." />
                                 </div>
                             </div>
 
                             {/* Lifelines */}
-                            <div className="absolute top-10 bottom-0 left-[15%] w-[2px] bg-gray-200"></div>
-                            <div className="absolute top-10 bottom-0 left-[50%] w-[2px] bg-gray-300"></div>
-                            <div className="absolute top-10 bottom-0 left-[85%] w-[2px] bg-gray-200"></div>
+                            <div className="absolute top-12 bottom-0 left-[20%] w-[1px] bg-slate-200 border-l border-dashed"></div>
+                            <div className="absolute top-12 bottom-0 left-[50%] w-[1px] bg-slate-300 border-l border-dashed"></div>
+                            <div className="absolute top-12 bottom-0 left-[80%] w-[1px] bg-slate-200 border-l border-dashed"></div>
 
-                            {/* Packets */}
-                            <div className="mt-48 space-y-64 flex flex-col items-center relative z-10">
+                            {/* Packet Sequence */}
+                            <div className="mt-48 space-y-[280px] flex flex-col items-center relative z-10">
                                 {visiblePackets.map((pkt) => (
                                     <PacketArrow 
                                         key={pkt.id} 
                                         packet={pkt} 
-                                        startX={getXPosition(pkt.from)} 
-                                        endX={getXPosition(pkt.to)} 
+                                        startX={getX(pkt.from)} 
+                                        endX={getX(pkt.to)} 
                                     />
                                 ))}
                             </div>
+
+                            {/* Phase Indicators */}
+                            <div className="absolute left-4 top-56 space-y-[850px] opacity-20 pointer-events-none">
+                                <div className="text-4xl font-black text-slate-300 uppercase rotate-90 lifeline-label">Establecimiento</div>
+                                <div className="text-4xl font-black text-blue-300 uppercase rotate-90 lifeline-label">Transferencia</div>
+                                <div className="text-4xl font-black text-red-300 uppercase rotate-90 lifeline-label">Cierre</div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="mt-6 text-[10px] text-gray-400 text-center uppercase tracking-widest leading-relaxed">
-                        Visualización técnica de Segmentos TCP <br/>
-                        Estructura de cabecera de 20 bytes (sin opciones extendidas)
+
+                    <div className="mt-6 text-center max-w-2xl">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em]">
+                            Simulación de estados TCP: CLOSED → SYN_SENT → ESTABLISHED → FIN_WAIT → TIME_WAIT
+                        </p>
                     </div>
                 </div>
             );
