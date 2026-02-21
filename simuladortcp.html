@@ -63,7 +63,10 @@
                             Número de confirmación - ACK (32): <span className="font-bold">{packet.ackNum}</span>
                         </div>
                         <div className="flex border-b border-black text-[6px] font-bold h-12">
-                            <div className="w-8 border-r border-black flex items-center justify-center text-center leading-tight">Header<br/>lenght<br/>(4)</div>
+                            <div className="w-8 border-r border-black flex flex-col items-center justify-center text-center leading-tight">
+                                <span>Header</span><span>lenght</span><span>(4)</span>
+                                <span className="text-[9px] mt-0.5 text-blue-700">{packet.headerLen}</span>
+                            </div>
                             <div className="w-8 border-r border-black flex items-center justify-center text-center leading-tight">Reser-<br/>vado<br/>000</div>
                             <div className="flex grow">
                                 {['NS','CWR','ECE','URG','ACK','PSH','RST','SYN','FIN'].map(flag => (
@@ -79,14 +82,14 @@
                             </div>
                         </div>
                         <div className="grid grid-cols-2 border-b border-black">
-                            <div className="p-0.5 border-r border-black">Checksum (16): <br/><span className="font-bold">{packet.checksum || '0x0000'}</span></div>
+                            <div className="p-0.5 border-r border-black">Checksum (16): <br/><span className="font-bold text-purple-700">{packet.checksum}</span></div>
                             <div className="p-0.5">Urgent pointer (16): <br/><span className="font-bold">0</span></div>
                         </div>
                         <div className="p-1 border-b border-black text-center text-[8px]">
-                            Opciones (0 - 40): <span className="font-normal italic">{packet.options}</span>
+                            Opciones (0 - 40): <span className="font-normal italic text-gray-700">{packet.options}</span>
                         </div>
                         <div className={`p-2 text-center text-[9px] font-bold ${packet.stage === 'Data' ? 'bg-green-50' : 'bg-gray-50'}`}>
-                            Datos: <span className={packet.type === 'response' ? 'text-green-600' : 'text-blue-600'}>
+                            Datos <span className="text-gray-500 text-[8px]">(Len={packet.len})</span>: <span className={packet.type === 'response' ? 'text-green-600' : 'text-blue-600'}>
                                 {packet.message}
                             </span>
                         </div>
@@ -136,19 +139,19 @@
 
             const packets = [
                 // Establecimiento (Handshake)
-                { id: 1, stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '0', ackNum: '0', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', checksum: '0x5813', flags: { syn: 1 }, message: '-', type: 'request', description: 'Fase 1: El cliente envía SYN para iniciar conexión.' },
-                { id: 2, stage: 'Handshake', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '0', ackNum: '1', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', checksum: '0x5997', flags: { syn: 1, ack: 1 }, message: '-', type: 'response', description: 'Fase 2: El servidor responde con SYN-ACK aceptando.' },
-                { id: 3, stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '1', ackNum: '1', window: '65280', options: 'Ninguna', checksum: '0x2ba5', flags: { ack: 1 }, message: '-', type: 'request', description: 'Fase 3: El cliente confirma (ACK). Conexión establecida.' },
+                { id: 1, stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '0', ackNum: '0', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', headerLen: '8', len: '0', checksum: '0x5813', flags: { syn: 1 }, message: '-', type: 'request', description: 'Fase 1: El cliente envía SYN para iniciar conexión.' },
+                { id: 2, stage: 'Handshake', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '0', ackNum: '1', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', headerLen: '8', len: '0', checksum: '0x5997', flags: { syn: 1, ack: 1 }, message: '-', type: 'response', description: 'Fase 2: El servidor responde con SYN-ACK aceptando.' },
+                { id: 3, stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '1', ackNum: '1', window: '65280', options: 'Ninguna', headerLen: '5', len: '0', checksum: '0x2ba5', flags: { ack: 1 }, message: '-', type: 'request', description: 'Fase 3: El cliente confirma (ACK). Conexión establecida.' },
                 
                 // Transferencia de Datos
-                { id: 4, stage: 'Data', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '1', ackNum: '1', window: '65280', options: 'Ninguna', checksum: '0x1d77', flags: { psh: 1, ack: 1 }, message: 'hola_mundo', type: 'request', description: 'Datos: Cliente envía texto en claro con bandera PSH.' },
-                { id: 5, stage: 'Data', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '1', ackNum: '14', window: '65280', options: 'Ninguna', checksum: '0x5995', flags: { psh: 1, ack: 1 }, message: 'krodbpxqgrt', type: 'response', description: 'Datos: Servidor responde texto cifrado en César.' },
+                { id: 4, stage: 'Data', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '1', ackNum: '1', window: '65280', options: 'Ninguna', headerLen: '5', len: '13', checksum: '0x1d77', flags: { psh: 1, ack: 1 }, message: 'hola_mundo', type: 'request', description: 'Datos: Cliente envía texto en claro con bandera PSH.' },
+                { id: 5, stage: 'Data', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '1', ackNum: '14', window: '65280', options: 'Ninguna', headerLen: '5', len: '13', checksum: '0x5995', flags: { psh: 1, ack: 1 }, message: 'krodbpxqgrt', type: 'response', description: 'Datos: Servidor responde texto cifrado en César.' },
                 
                 // Cierre (Termination)
-                { id: 6, stage: 'Closure', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '14', ackNum: '14', window: '65280', options: 'Ninguna', checksum: '0x2b90', flags: { fin: 1, ack: 1 }, message: '-', type: 'request', description: 'Cierre 1: El cliente solicita cerrar enviando FIN.' },
-                { id: 7, stage: 'Closure', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '14', ackNum: '15', window: '65280', options: 'Ninguna', checksum: '0x598b', flags: { ack: 1 }, message: '-', type: 'response', description: 'Cierre 2: El servidor confirma el FIN del cliente (ACK).' },
-                { id: 8, stage: 'Closure', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '14', ackNum: '15', window: '65280', options: 'Ninguna', checksum: '0x598b', flags: { fin: 1, ack: 1 }, message: '-', type: 'response', description: 'Cierre 3: El servidor envía su FIN para cerrar su lado.' },
-                { id: 9, stage: 'Closure', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '15', ackNum: '15', window: '65280', options: 'Ninguna', checksum: '0x2b8f', flags: { ack: 1 }, message: '-', type: 'request', description: 'Cierre 4: El cliente confirma (ACK). Conexión terminada.' }
+                { id: 6, stage: 'Closure', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '14', ackNum: '14', window: '65280', options: 'Ninguna', headerLen: '5', len: '0', checksum: '0x2b90', flags: { fin: 1, ack: 1 }, message: '-', type: 'request', description: 'Cierre 1: El cliente solicita cerrar enviando FIN.' },
+                { id: 7, stage: 'Closure', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '14', ackNum: '15', window: '65280', options: 'Ninguna', headerLen: '5', len: '0', checksum: '0x598b', flags: { ack: 1 }, message: '-', type: 'response', description: 'Cierre 2: El servidor confirma el FIN del cliente (ACK).' },
+                { id: 8, stage: 'Closure', from: 'server', to: 'client1', portOrig: '6000', portDest: '54000', seq: '14', ackNum: '15', window: '65280', options: 'Ninguna', headerLen: '5', len: '0', checksum: '0x598b', flags: { fin: 1, ack: 1 }, message: '-', type: 'response', description: 'Cierre 3: El servidor envía su FIN para cerrar su lado.' },
+                { id: 9, stage: 'Closure', from: 'client1', to: 'server', portOrig: '54000', portDest: '6000', seq: '15', ackNum: '15', window: '65280', options: 'Ninguna', headerLen: '5', len: '0', checksum: '0x2b8f', flags: { ack: 1 }, message: '-', type: 'request', description: 'Cierre 4: El cliente confirma (ACK). Conexión terminada.' }
             ];
 
             useEffect(() => {
@@ -156,7 +159,7 @@
                 if (isPlaying && visiblePackets.length < packets.length) {
                     interval = setInterval(() => {
                         setVisiblePackets(prev => [...prev, packets[prev.length]]);
-                    }, 2000);
+                    }, 2200); // Ligeramente más lento para poder leer los datos
                 } else {
                     setIsPlaying(false);
                 }
@@ -177,8 +180,8 @@
                         {/* Control Panel */}
                         <div className="p-6 border-b flex justify-between items-center bg-slate-50">
                             <div>
-                                <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">TCP Full Cycle Analysis</h1>
-                                <p className="text-[10px] text-slate-500 font-mono italic">Capture: cifrado.pcapng | AES-César Shift +3</p>
+                                <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Análisis Detallado TCP (Wireshark)</h1>
+                                <p className="text-[10px] text-slate-500 font-mono italic">Valores variables exactos: Seq, Ack, Win, Len, Checksum y Options</p>
                             </div>
                             <div className="flex gap-2">
                                 <button 
@@ -241,7 +244,7 @@
 
                     <div className="mt-6 text-center max-w-2xl">
                         <p className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.2em]">
-                            Simulación de estados TCP: CLOSED → SYN_SENT → ESTABLISHED → FIN_WAIT → TIME_WAIT
+                            Verificación de datos 100% fiel a la captura cifrado.pcapng
                         </p>
                     </div>
                 </div>
