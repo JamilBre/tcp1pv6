@@ -48,11 +48,11 @@
             
             return (
                 <div className="flex flex-col items-center">
-                    <div className="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-t-md max-w-[280px] w-[280px] text-center shadow-md z-10 border border-blue-800 flex flex-col gap-0.5">
+                    <div className="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-t-md max-w-[290px] w-[290px] text-center shadow-md z-10 border border-blue-800 flex flex-col gap-0.5">
                         <span className="text-[8px] text-blue-200 font-mono tracking-wider">FRAME: {packet.frame} | TIME: {packet.time}</span>
-                        <span className="text-[10px]">{packet.description}</span>
+                        <span className="text-[9px] leading-tight">{packet.description}</span>
                     </div>
-                    <div className="bg-white tcp-table shadow-xl w-[280px] text-black">
+                    <div className="bg-white tcp-table shadow-xl w-[290px] text-black">
                         <div className="grid grid-cols-2 border-b border-black">
                             <div className="p-0.5 border-r border-black">Puerto origen (16): <br/><span className="font-bold text-blue-700">{packet.portOrig}</span></div>
                             <div className="p-0.5">Puerto destino (16): <br/><span className="font-bold text-blue-700">{packet.portDest}</span></div>
@@ -132,27 +132,26 @@
             const [visiblePackets, setVisiblePackets] = useState([]);
             const [isPlaying, setIsPlaying] = useState(false);
 
-            // Nuevas IPs basadas en los roles correctos de tcp.txt
-            const client1IP = "fd00::ea9c:25ff:fe80:bd0b"; // Origen Frame 11 (Port 54002)
-            const serverIP = "fd00::ce28:aaff:fe1b:1c02";  // Destino Frame 11 (Port 5000)
+            const client1IP = "fd00::ea9c:25ff:fe80:bd0b";
+            const serverIP = "fd00::ce28:aaff:fe1b:1c02";
 
             const packets = [
-                // Establecimiento (Handshake) - Frames 11 a 13
-                { id: 1, frame: 11, time: '13.390451', stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '0', ackNum: '0', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', headerLen: '32', len: '0', checksum: '0x9e71', flags: { syn: 1 }, message: '-', type: 'request', description: 'Fase 1: El cliente envía SYN para iniciar conexión.' },
-                { id: 2, frame: 12, time: '13.390703', stage: 'Handshake', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '0', ackNum: '1', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', headerLen: '32', len: '0', checksum: '0x5997', flags: { syn: 1, ack: 1 }, message: '-', type: 'response', description: 'Fase 2: El servidor responde SYN-ACK.' },
-                { id: 3, frame: 13, time: '13.393664', stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '1', ackNum: '1', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x47c2', flags: { ack: 1 }, message: '-', type: 'request', description: 'Fase 3: El cliente confirma (ACK).' },
+                // Establecimiento (Handshake)
+                { id: 1, frame: 11, time: '13.390451', stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '0', ackNum: '0', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', headerLen: '32', len: '0', checksum: '0x9e71', flags: { syn: 1 }, message: '-', type: 'request', description: '[SYN] Cliente inicia Handshake solicitando abrir la conexión.' },
+                { id: 2, frame: 12, time: '13.390703', stage: 'Handshake', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '0', ackNum: '1', window: '65535', options: 'MSS=1440 WS=256 SACK_PERM', headerLen: '32', len: '0', checksum: '0x5997', flags: { syn: 1, ack: 1 }, message: '-', type: 'response', description: '[SYN, ACK] Servidor acepta la solicitud y sincroniza su secuencia.' },
+                { id: 3, frame: 13, time: '13.393664', stage: 'Handshake', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '1', ackNum: '1', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x47c2', flags: { ack: 1 }, message: '-', type: 'request', description: '[ACK] Cliente confirma. Estado TCP pasa a ESTABLISHED.' },
                 
-                // Transferencia de Datos - Frames 14, 15, 22, 23
-                { id: 4, frame: 14, time: '13.394693', stage: 'Data', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '1', ackNum: '1', window: '255', options: '-', headerLen: '20', len: '18', checksum: '0x599d', flags: { psh: 1, ack: 1 }, message: 'Envia el mensaje: ', type: 'response', description: 'Datos 1: Servidor envía prompt inicial.' },
-                { id: 5, frame: 15, time: '13.438312', stage: 'Data', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '1', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x47b0', flags: { ack: 1 }, message: '-', type: 'request', description: 'Datos 2: Cliente confirma (ACK).' },
-                { id: 6, frame: 22, time: '22.291990', stage: 'Data', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '1', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '18', checksum: '0x1315', flags: { psh: 1, ack: 1 }, message: 'como estas server', type: 'request', description: 'Datos 3: Cliente envía mensaje a cifrar.' },
-                { id: 7, frame: 23, time: '22.293002', stage: 'Data', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '19', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '18', checksum: '0x599d', flags: { psh: 1, ack: 1 }, message: 'frpr hvwdv vhuyhu', type: 'response', description: 'Datos 4: Servidor contesta texto cifrado.' },
+                // Transferencia de Datos
+                { id: 4, frame: 14, time: '13.394693', stage: 'Data', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '1', ackNum: '1', window: '255', options: '-', headerLen: '20', len: '18', checksum: '0x599d', flags: { psh: 1, ack: 1 }, message: 'Envia el mensaje: ', type: 'response', description: '[PSH, ACK] App del Servidor envía un prompt exigiendo input al usuario.' },
+                { id: 5, frame: 15, time: '13.438312', stage: 'Data', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '1', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x47b0', flags: { ack: 1 }, message: '-', type: 'request', description: '[ACK] Cliente acusa recibo del prompt (Ack=19 por los 18 bytes recibidos).' },
+                { id: 6, frame: 22, time: '22.291990', stage: 'Data', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '1', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '18', checksum: '0x1315', flags: { psh: 1, ack: 1 }, message: 'como estas server', type: 'request', description: '[PSH, ACK] Cliente envía su texto en claro para que sea procesado.' },
+                { id: 7, frame: 23, time: '22.293002', stage: 'Data', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '19', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '18', checksum: '0x599d', flags: { psh: 1, ack: 1 }, message: 'frpr hvwdv vhuyhu', type: 'response', description: '[PSH, ACK] Servidor responde con el mensaje cifrado (Algoritmo César).' },
                 
-                // Cierre (Termination) - Frames 24 a 27
-                { id: 8, frame: 24, time: '22.293538', stage: 'Closure', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '37', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x598b', flags: { fin: 1, ack: 1 }, message: '-', type: 'response', description: 'Cierre 1: Servidor inicia cierre (FIN).' },
-                { id: 9, frame: 25, time: '22.295573', stage: 'Closure', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '19', ackNum: '38', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x478b', flags: { ack: 1 }, message: '-', type: 'request', description: 'Cierre 2: Cliente confirma (ACK).' },
-                { id: 10, frame: 26, time: '22.296810', stage: 'Closure', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '19', ackNum: '38', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x478a', flags: { fin: 1, ack: 1 }, message: '-', type: 'request', description: 'Cierre 3: Cliente envía su FIN.' },
-                { id: 11, frame: 27, time: '22.296975', stage: 'Closure', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '38', ackNum: '20', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x598b', flags: { ack: 1 }, message: '-', type: 'response', description: 'Cierre 4: Servidor confirma (ACK). Conexión terminada.' }
+                // Cierre (Termination)
+                { id: 8, frame: 24, time: '22.293538', stage: 'Closure', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '37', ackNum: '19', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x598b', flags: { fin: 1, ack: 1 }, message: '-', type: 'response', description: '[FIN, ACK] Inicio de Cierre: Servidor indica que ya no enviará más datos.' },
+                { id: 9, frame: 25, time: '22.295573', stage: 'Closure', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '19', ackNum: '38', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x478b', flags: { ack: 1 }, message: '-', type: 'request', description: '[ACK] Cliente confirma el FIN del servidor. Entra en CLOSE_WAIT.' },
+                { id: 10, frame: 26, time: '22.296810', stage: 'Closure', from: 'client1', to: 'server', portOrig: '54002', portDest: '5000', seq: '19', ackNum: '38', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x478a', flags: { fin: 1, ack: 1 }, message: '-', type: 'request', description: '[FIN, ACK] Cliente cierra su lado de la conexión transmitiendo su propio FIN.' },
+                { id: 11, frame: 27, time: '22.296975', stage: 'Closure', from: 'server', to: 'client1', portOrig: '5000', portDest: '54002', seq: '38', ackNum: '20', window: '255', options: '-', headerLen: '20', len: '0', checksum: '0x598b', flags: { ack: 1 }, message: '-', type: 'response', description: '[ACK] Servidor confirma el cierre. Conexión finalizada (CLOSED).' }
             ];
 
             useEffect(() => {
@@ -160,7 +159,7 @@
                 if (isPlaying && visiblePackets.length < packets.length) {
                     interval = setInterval(() => {
                         setVisiblePackets(prev => [...prev, packets[prev.length]]);
-                    }, 2600); // 2.6s por la cantidad de info
+                    }, 2800); // Ligeramente más lento para leer las nuevas descripciones
                 } else {
                     setIsPlaying(false);
                 }
@@ -182,7 +181,7 @@
                         <div className="p-6 border-b flex justify-between items-center bg-slate-50 sticky top-0 z-40 shadow-sm">
                             <div>
                                 <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Análisis Detallado TCP (Wireshark)</h1>
-                                <p className="text-[10px] text-slate-500 font-mono italic">Captura tcp.txt / Excel | Sesión Extendida (11 Paquetes) | Roles Reales</p>
+                                <p className="text-[10px] text-slate-500 font-mono italic">Comportamiento aplicativo descriptivo | Sesión de 11 Paquetes</p>
                             </div>
                             <div className="flex gap-2">
                                 <button 
@@ -245,15 +244,6 @@
                                 <div className="text-5xl font-black text-red-400 uppercase rotate-90 lifeline-label tracking-widest">Terminación</div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="mt-8 text-center max-w-3xl">
-                        <div className="inline-block px-4 py-1 bg-green-100 text-green-800 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 border border-green-200">
-                            Simulación de 11 Frames (tcp.txt / Excel)
-                        </div>
-                        <p className="text-xs text-gray-500 leading-relaxed font-mono">
-                            Los datos incluyen las actualizaciones del archivo Excel: Tamaño de ventana exacto (255 y 65535), Checksums precisos y longitudes de cabecera en bytes (32 y 20).
-                        </p>
                     </div>
                 </div>
             );
